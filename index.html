@@ -105,6 +105,35 @@ nav button span{font-family:var(--display);font-size:11px;letter-spacing:.4px;te
 svg.chart{width:100%;height:auto;display:block}
 .filebar{display:flex;gap:10px}
 .filebar .btn{flex:1;font-size:13px;padding:10px 12px}
+
+.segbar{display:flex;gap:4px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:4px}
+.segbar button{flex:1;background:transparent;border:none;border-radius:7px;padding:8px 6px;color:var(--dim);font-family:var(--display);font-size:13px;letter-spacing:.4px;text-transform:uppercase;display:flex;align-items:center;justify-content:center;gap:6px}
+.segbar button.on{background:var(--surface);color:var(--iron);box-shadow:0 1px 2px rgba(0,0,0,.25)}
+
+.calhead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.calhead .m{font-family:var(--display);font-size:16px;letter-spacing:.5px;text-transform:uppercase}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.cal .dow{text-align:center;font-size:11px;letter-spacing:.4px;text-transform:uppercase;color:var(--faint);padding-bottom:2px}
+.cal .pad{aspect-ratio:1}
+.cal .day{aspect-ratio:1;background:transparent;border:1px solid transparent;border-radius:8px;color:var(--faint);font-family:var(--mono);font-size:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:0}
+.cal .day.has{background:var(--surface2);border-color:var(--border);color:var(--text)}
+.cal .day.today{border-color:var(--steel)}
+.cal .day.sel{background:rgba(232,84,58,.16);border-color:var(--iron);color:var(--iron)}
+.cal .day .dot{width:5px;height:5px;border-radius:50%;background:var(--iron)}
+.daygroup{font-family:var(--display);font-size:13px;letter-spacing:.4px;text-transform:uppercase;color:var(--dim);margin:14px 0 8px;display:flex;align-items:center;gap:8px}
+.daygroup:before{content:"";height:1px;flex:0 0 14px;background:var(--borderStrong)}
+
+.overlay{position:fixed;inset:0;background:rgba(9,10,12,.72);backdrop-filter:blur(2px);display:flex;align-items:flex-end;justify-content:center;z-index:50;padding:0}
+.modal{background:var(--surface);border:1px solid var(--borderStrong);border-radius:16px 16px 0 0;width:100%;max-width:640px;max-height:82vh;display:flex;flex-direction:column;animation:slideUp .18s ease-out}
+@keyframes slideUp{from{transform:translateY(18px);opacity:.6}to{transform:translateY(0);opacity:1}}
+.modalhead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:16px 16px 12px;border-bottom:1px solid var(--border)}
+.modaltitle{font-family:var(--display);font-size:17px;letter-spacing:.4px;text-transform:uppercase;line-height:1.15}
+.modalbody{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 16px calc(18px + env(safe-area-inset-bottom))}
+@media(min-width:560px){.overlay{align-items:center;padding:20px}.modal{border-radius:16px}}
+
+.group{margin-top:20px;padding-top:16px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:16px}
+.group:first-of-type{border-top:none;padding-top:0}
+.grouphead{font-family:var(--display);font-size:16px;letter-spacing:.4px;text-transform:uppercase;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 </style>
 </head>
 <body>
@@ -141,7 +170,12 @@ const ICON = {
   down:'<path d="M16 17h6v-6"/><path d="m22 17-8.5-8.5-5 5L2 7"/>',
   minus:'<path d="M5 12h14"/>',
   download:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/>',
-  upload:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/>'
+  upload:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/>',
+  chart:'<path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="m19 9-5 5-4-4-3 3"/>',
+  calendar:'<rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="M8 2v4"/><path d="M16 2v4"/>',
+  list:'<path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/>',
+  chevL:'<path d="m15 18-6-6 6-6"/>',
+  chevR:'<path d="m9 18 6-6-6-6"/>'
 };
 function ico(name, size, sw){
   return '<svg xmlns="http://www.w3.org/2000/svg" width="'+(size||16)+'" height="'+(size||16)+
@@ -185,6 +219,14 @@ function since(iso){const t=new Date(iso).getTime();if(isNaN(t))return"";
   if(d<=0)return"hoy"; if(d===1)return"ayer"; if(d<7)return"hace "+d+" días";
   const w=Math.round(d/7); return w===1?"hace 1 semana":"hace "+w+" semanas";}
 function today(){const d=new Date();return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10);}
+function pad2(n){return(n<10?"0":"")+n;}
+function dayKey(iso){const d=new Date(iso);return isNaN(d)?"":d.getFullYear()+"-"+pad2(d.getMonth()+1)+"-"+pad2(d.getDate());}
+function monthKey(d){return d.getFullYear()+"-"+pad2(d.getMonth()+1);}
+function monthLabel(mk){const p=mk.split("-");const d=new Date(+p[0],+p[1]-1,1);
+  const s=d.toLocaleDateString("es-AR",{month:"long",year:"numeric"});return s.charAt(0).toUpperCase()+s.slice(1);}
+function shiftMonth(mk,delta){const p=mk.split("-");return monthKey(new Date(+p[0],+p[1]-1+delta,1));}
+function dayLabel(dk){const p=dk.split("-");const d=new Date(+p[0],+p[1]-1,+p[2]);
+  const s=d.toLocaleDateString("es-AR",{weekday:"long",day:"numeric",month:"long"});return s.charAt(0).toUpperCase()+s.slice(1);}
 function dateToISO(v){const d=new Date(v+"T12:00:00");return isNaN(d)?new Date().toISOString():d.toISOString();}
 function label(ex){if(!ex)return"Ejercicio eliminado";
   const dup=S.exercises.some(o=>o.id!==ex.id&&o.name===ex.name);
@@ -203,7 +245,7 @@ const S={
   entries:[],
   form:{exerciseId:"",avg:"",max:"",date:today()},
   lib:{editingId:null,name:"",muscleGroup:MUSCLE_GROUPS[0],type:TYPES[0],comments:""},
-  reg:{filterId:"",editingId:"",eAvg:"",eMax:""},
+  reg:{filterId:"",editingId:"",eAvg:"",eMax:"",view:"lista",month:monthKey(new Date()),day:""},
   vis:{group:"Todos",exerciseId:""},
   confirm:null, error:"", libError:"", saved:false
 };
@@ -347,48 +389,120 @@ function saveEx(){
 function cancelEx(){S.lib={editingId:null,name:"",muscleGroup:MUSCLE_GROUPS[0],type:TYPES[0],comments:""};S.libError="";}
 
 /* ---------- pestaña Registro ---------- */
+function entryRow(e,showDate){
+  const R=S.reg;
+  const ex=byId(e.exerciseId), editing=R.editingId===e.id, conf=S.confirm==="en:"+e.id;
+  let right;
+  if(editing){
+    right='<input class="mini" type="number" step="0.5" min="0" placeholder="prom" value="'+esc(R.eAvg)+'" data-bind="reg.eAvg">'
+      +'<input class="mini" type="number" step="0.5" min="0" placeholder="máx" value="'+esc(R.eMax)+'" data-bind="reg.eMax">'
+      +'<button class="icobtn ok" data-act="saveEn" data-id="'+e.id+'">'+ico("check",13)+'</button>'
+      +'<button class="icobtn" data-act="cancelEn">'+ico("x",13)+'</button>';
+  }else if(conf){
+    right='<span class="err">¿Borrar?</span>'
+      +'<button class="icobtn danger" data-act="delEn" data-id="'+e.id+'">'+ico("check",13)+'</button>'
+      +'<button class="icobtn" data-act="cancelConfirm">'+ico("x",13)+'</button>';
+  }else{
+    right='<span class="nums">'+(e.avg!=null?"prom "+e.avg:"—")+' / '+(e.max!=null?"máx "+e.max:"—")+'</span>'
+      +'<button class="icobtn" data-act="editEn" data-id="'+e.id+'">'+ico("pencil",13)+'</button>'
+      +'<button class="icobtn danger" data-act="askDelEn" data-id="'+e.id+'">'+ico("trash",13)+'</button>';
+  }
+  return '<div class="item'+(editing?" editing":"")+'"><div style="min-width:0">'
+    +'<div class="name"'+(ex?'':' style="color:var(--faint)"')+'>'+esc(label(ex))+'</div>'
+    +(showDate?'<div class="meta">'+fmtDate(e.timestamp)+'</div>':'')
+    +'</div><div class="actions">'+right+'</div></div>';
+}
+
 function viewRegistro(){
   if(!S.entries.length)return empty("clipboard","Sin registros","Las cargas que ingreses en la pestaña Carga van a aparecer acá.");
   const R=S.reg;
   const list=S.entries.filter(e=>!R.filterId||e.exerciseId===R.filterId)
     .slice().sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));
 
-  let h='<div class="card tight">'+field("Filtrar por ejercicio",
-      '<select data-bind="reg.filterId" data-render="1"><option value="">Todos los ejercicios</option>'+exerciseOptions(R.filterId,false)+'</select>')+'</div>'
-    + '<div class="hint" style="padding-left:2px">'+list.length+' '+(list.length===1?"registro":"registros")+'</div>';
+  let h='<div class="segbar">'
+    + '<button data-act="regView" data-id="lista"'+(R.view==="lista"?' class="on"':'')+'>'+ico("list",15)+'Lista</button>'
+    + '<button data-act="regView" data-id="calendario"'+(R.view==="calendario"?' class="on"':'')+'>'+ico("calendar",15)+'Calendario</button>'
+    + '</div>'
+    + '<div class="card tight">'+field("Filtrar por ejercicio",
+      '<select data-bind="reg.filterId" data-render="1"><option value="">Todos los ejercicios</option>'+exerciseOptions(R.filterId,false)+'</select>')+'</div>';
 
-  if(!list.length)return h+empty("clipboard","Sin registros para este ejercicio","Probá con otro filtro o cargá un peso nuevo.");
+  h += (R.view==="calendario") ? calendarBody(list) : listBody(list);
 
-  h+='<div class="stack sm">'+list.map(e=>{
-    const ex=byId(e.exerciseId), editing=R.editingId===e.id, conf=S.confirm==="en:"+e.id;
-    let right;
-    if(editing){
-      right='<input class="mini" type="number" step="0.5" min="0" placeholder="prom" value="'+esc(R.eAvg)+'" data-bind="reg.eAvg">'
-        +'<input class="mini" type="number" step="0.5" min="0" placeholder="máx" value="'+esc(R.eMax)+'" data-bind="reg.eMax">'
-        +'<button class="icobtn ok" data-act="saveEn" data-id="'+e.id+'">'+ico("check",13)+'</button>'
-        +'<button class="icobtn" data-act="cancelEn">'+ico("x",13)+'</button>';
-    }else if(conf){
-      right='<span class="err">¿Borrar?</span>'
-        +'<button class="icobtn danger" data-act="delEn" data-id="'+e.id+'">'+ico("check",13)+'</button>'
-        +'<button class="icobtn" data-act="cancelConfirm">'+ico("x",13)+'</button>';
-    }else{
-      right='<span class="nums">'+(e.avg!=null?"prom "+e.avg:"—")+' / '+(e.max!=null?"máx "+e.max:"—")+'</span>'
-        +'<button class="icobtn" data-act="editEn" data-id="'+e.id+'">'+ico("pencil",13)+'</button>'
-        +'<button class="icobtn danger" data-act="askDelEn" data-id="'+e.id+'">'+ico("trash",13)+'</button>';
-    }
-    return '<div class="item'+(editing?" editing":"")+'"><div style="min-width:0">'
-      +'<div class="name"'+(ex?'':' style="color:var(--faint)"')+'>'+esc(label(ex))+'</div>'
-      +'<div class="meta">'+fmtDate(e.timestamp)+'</div></div>'
-      +'<div class="actions">'+right+'</div></div>';
-  }).join("")+'</div>';
-
-  h+='<div class="filebar"><button class="btn ghost" data-act="backup">'+ico("download",15)+'Respaldo</button>'
+  h+='<div class="filebar" style="margin-top:4px"><button class="btn ghost" data-act="backup">'+ico("download",15)+'Respaldo</button>'
     +'<button class="btn ghost" data-act="restore">'+ico("upload",15)+'Restaurar</button></div>'
     +'<input type="file" id="fileInput" accept="application/json" hidden>';
   return h;
 }
 
-/* ---------- pestaña Filtro ---------- */
+function listBody(list){
+  let h='<div class="hint" style="padding-left:2px">'+list.length+' '+(list.length===1?"registro":"registros")+'</div>';
+  if(!list.length)return h+empty("clipboard","Sin registros para este ejercicio","Probá con otro filtro o cargá un peso nuevo.");
+  return h+'<div class="stack sm">'+list.map(e=>entryRow(e,true)).join("")+'</div>';
+}
+
+const DOW=["Lu","Ma","Mi","Ju","Vi","Sá","Do"];
+
+function calendarBody(list){
+  const R=S.reg;
+
+  /* agrupo por día */
+  const byDay={};
+  list.forEach(e=>{const k=dayKey(e.timestamp); if(k)(byDay[k]=byDay[k]||[]).push(e);});
+
+  /* si el día elegido ya no tiene registros, lo suelto */
+  if(R.day&&!byDay[R.day])R.day="";
+
+  const p=R.month.split("-"), y=+p[0], m=+p[1]-1;
+  const first=new Date(y,m,1), daysInMonth=new Date(y,m+1,0).getDate();
+  const offset=(first.getDay()+6)%7;               // lunes primero
+  const todayKey=dayKey(new Date().toISOString());
+
+  let cells=DOW.map(d=>'<div class="dow">'+d+'</div>').join("");
+  for(let i=0;i<offset;i++)cells+='<div class="pad"></div>';
+  let inMonth=0;
+  for(let d=1;d<=daysInMonth;d++){
+    const k=y+"-"+pad2(m+1)+"-"+pad2(d);
+    const has=!!byDay[k]; if(has)inMonth+=byDay[k].length;
+    const cls="day"+(has?" has":"")+(k===todayKey?" today":"")+(k===R.day?" sel":"");
+    cells+='<button class="'+cls+'"'+(has?' data-act="pickDay" data-id="'+k+'"':' disabled')+'>'
+      +'<span>'+d+'</span>'+(has?'<i class="dot"></i>':'')+'</button>';
+  }
+
+  let h='<div class="card">'
+    + '<div class="calhead">'
+    +   '<button class="icobtn" data-act="prevMonth">'+ico("chevL",15)+'</button>'
+    +   '<div class="m">'+esc(monthLabel(R.month))+'</div>'
+    +   '<button class="icobtn" data-act="nextMonth">'+ico("chevR",15)+'</button>'
+    + '</div>'
+    + '<div class="cal">'+cells+'</div>'
+    + '<div class="hint" style="text-align:center;margin-top:12px">'
+    +   (inMonth?inMonth+' '+(inMonth===1?"registro":"registros")+' este mes · tocá un día para ver qué hiciste':'Sin registros en este mes')
+    + '</div></div>';
+
+  /* todo el mes agrupado por fecha */
+  const keys=Object.keys(byDay).filter(k=>k.slice(0,7)===R.month).sort().reverse();
+  h+=keys.map(k=>'<div class="daygroup">'+esc(dayLabel(k))
+      +'<span class="hint" style="text-transform:none;letter-spacing:0">'+byDay[k].length+'</span></div>'
+      +'<div class="stack sm">'+byDay[k].map(e=>entryRow(e,false)).join("")+'</div>').join("");
+
+  /* popup del día elegido */
+  if(R.day&&byDay[R.day]){
+    const rows=byDay[R.day];
+    const vals=rows.map(peak).filter(v=>v!=null);
+    const tope=vals.length?Math.max.apply(null,vals):null;
+    h+='<div class="overlay" data-act="closeDay"><div class="modal" data-stop="1">'
+      +'<div class="modalhead"><div style="min-width:0">'
+      +'<div class="modaltitle">'+esc(dayLabel(R.day))+'</div>'
+      +'<div class="hint">'+rows.length+' '+(rows.length===1?"ejercicio":"ejercicios")
+      +(tope!=null?' · tope '+tope+' kg':'')+'</div></div>'
+      +'<button class="icobtn" data-act="closeDay">'+ico("x",15)+'</button></div>'
+      +'<div class="modalbody"><div class="stack sm">'+rows.map(e=>entryRow(e,false)).join("")+'</div></div>'
+      +'</div></div>';
+  }
+  return h;
+}
+
+/* ---------- pestaña Progreso ---------- */
 function chart(entries){
   const W=640,H=250,pl=42,pr=14,pt=14,pb=32;
   const n=entries.length;
@@ -423,23 +537,41 @@ function chart(entries){
     +g+serie("avg","#5B8CA8")+serie("max","#E8543A")+'</svg>';
 }
 
-function viewFiltro(){
+function viewProgreso(){
   const V=S.vis;
   const avail=S.exercises.filter(e=>V.group==="Todos"||e.muscleGroup===V.group).sort((a,b)=>a.name.localeCompare(b.name));
   if(V.exerciseId&&!avail.some(e=>e.id===V.exerciseId))V.exerciseId="";
+  const allLabel=V.group==="Todos"?"Elegir":"Todos los de "+V.group;
 
   let h='<div class="card row"><div class="col">'
     + field("Grupo muscular",'<select data-bind="vis.group" data-render="1"><option'+(V.group==="Todos"?" selected":"")+'>Todos</option>'
       + MUSCLE_GROUPS.map(m=>'<option'+(m===V.group?" selected":"")+'>'+m+'</option>').join("")+'</select>')
     + '</div><div class="col">'
-    + field("Ejercicio",'<select data-bind="vis.exerciseId" data-render="1"><option value="">Elegir</option>'
+    + field("Ejercicio",'<select data-bind="vis.exerciseId" data-render="1"><option value="">'+esc(allLabel)+'</option>'
       + avail.map(e=>'<option value="'+e.id+'"'+(e.id===V.exerciseId?" selected":"")+'>'+esc(label(e))+'</option>').join("")+'</select>')
     + '</div></div>';
 
-  if(!V.exerciseId)return h+empty("sliders","Elegí un ejercicio","Filtrá por grupo muscular y elegí un ejercicio para ver su evolución.");
+  /* un ejercicio puntual */
+  if(V.exerciseId)return h+dashboard(V.exerciseId,false);
 
-  const list=S.entries.filter(e=>e.exerciseId===V.exerciseId).sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));
-  if(!list.length)return h+empty("dumbbell","Sin cargas todavía","Todavía no cargaste pesos para este ejercicio.");
+  /* grupo entero: un dashboard por ejercicio con cargas */
+  if(V.group!=="Todos"){
+    const withData=avail.filter(ex=>S.entries.some(e=>e.exerciseId===ex.id));
+    if(!withData.length)return h+empty("dumbbell","Sin cargas en "+V.group,"Todavía no cargaste pesos en ningún ejercicio de este grupo.");
+    h+='<div class="hint" style="padding-left:2px">'+withData.length+' '
+      +(withData.length===1?"ejercicio con cargas":"ejercicios con cargas")+' en '+esc(V.group)+'</div>';
+    return h+withData.map(ex=>'<div class="group">'
+      +'<div class="grouphead">'+esc(label(ex))+'<span class="pill">'+esc(ex.type)+'</span></div>'
+      +dashboard(ex.id,true)+'</div>').join("");
+  }
+
+  return h+empty("chart","Elegí qué ver","Elegí un grupo muscular para ver todos sus ejercicios, o un ejercicio puntual para su evolución.");
+}
+
+function dashboard(exId,compact){
+  let h="";
+  const list=S.entries.filter(e=>e.exerciseId===exId).sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));
+  if(!list.length)return empty("dumbbell","Sin cargas todavía","Todavía no cargaste pesos para este ejercicio.");
 
   const cur=list[list.length-1], prev=list[list.length-2]||null;
   const cp=peak(cur), pp=peak(prev);
@@ -473,22 +605,26 @@ function viewFiltro(){
 
   if(record!=null)h+='<div class="record">'+ico("trophy",15)+'Récord: <b>'+record+' kg</b> <span class="hint">· '+list.length+' '+(list.length===1?"registro":"registros")+'</span></div>';
 
-  h+='<div class="chartwrap"><div class="eyebrow" style="margin:0 0 10px 8px">Evolución</div>'
-    +'<div class="legend"><span><i style="background:#5B8CA8"></i>Promedio</span><span><i style="background:#E8543A"></i>Máximo</span></div>'
-    +chart(list)+'</div>';
+  if(list.length>1||!compact){
+    h+='<div class="chartwrap"><div class="eyebrow" style="margin:0 0 10px 8px">Evolución</div>'
+      +'<div class="legend"><span><i style="background:#5B8CA8"></i>Promedio</span><span><i style="background:#E8543A"></i>Máximo</span></div>'
+      +chart(list)+'</div>';
+  }
   return h;
 }
 
 /* ---------- render ---------- */
-const TABS=[["carga","Carga","dumbbell"],["biblioteca","Biblioteca","library"],["registro","Registro","clipboard"],["filtro","Filtro","sliders"]];
+const TABS=[["carga","Carga","dumbbell"],["biblioteca","Biblioteca","library"],["registro","Registro","clipboard"],["progreso","Progreso","chart"]];
 function render(){
   $("#logo").innerHTML=ico("dumbbell",18,2.2);
   $("#main").innerHTML =
     S.tab==="carga"?viewCarga():
     S.tab==="biblioteca"?viewBiblioteca():
-    S.tab==="registro"?viewRegistro():viewFiltro();
+    S.tab==="registro"?viewRegistro():viewProgreso();
   $("#nav").innerHTML=TABS.map(t=>'<button data-tab="'+t[0]+'"'+(S.tab===t[0]?' class="active"':'')+'>'
     +ico(t[2],19,S.tab===t[0]?2.4:2)+'<span>'+t[1]+'</span></button>').join("");
+  const open=S.tab==="registro"&&S.reg.view==="calendario"&&!!S.reg.day;
+  document.body.style.overflow=open?"hidden":"";
 }
 
 /* ---------- eventos ---------- */
@@ -506,6 +642,7 @@ document.addEventListener("change",e=>{
   if(e.target.id==="fileInput"&&e.target.files[0])readBackup(e.target.files[0]);
 });
 document.addEventListener("keydown",e=>{
+  if(e.key==="Escape"&&S.reg.day){S.reg.day="";S.reg.editingId="";S.confirm=null;render();return;}
   if(e.key!=="Enter")return;
   const a=e.target.getAttribute&&e.target.getAttribute("data-enter");
   if(!a)return;
@@ -518,6 +655,8 @@ document.addEventListener("click",e=>{
   if(nav){S.tab=nav.getAttribute("data-tab");S.confirm=null;render();return;}
   const btn=e.target.closest("[data-act]");
   if(!btn)return;
+  /* click adentro del popup: no lo cierro */
+  if(btn.classList.contains("overlay")&&e.target.closest("[data-stop]"))return;
   const act=btn.getAttribute("data-act"), id=btn.getAttribute("data-id");
   switch(act){
     case"add":addEntry();break;
@@ -540,6 +679,11 @@ document.addEventListener("click",e=>{
       S.reg.editingId="";save("en");render();break;}
     case"askDelEn":S.confirm="en:"+id;render();break;
     case"delEn":S.entries=S.entries.filter(x=>x.id!==id);S.confirm=null;save("en");render();break;
+    case"regView":S.reg.view=id;S.reg.editingId="";S.confirm=null;render();break;
+    case"prevMonth":S.reg.month=shiftMonth(S.reg.month,-1);S.reg.day="";S.confirm=null;render();break;
+    case"nextMonth":S.reg.month=shiftMonth(S.reg.month,1);S.reg.day="";S.confirm=null;render();break;
+    case"pickDay":S.reg.day=(S.reg.day===id?"":id);S.reg.editingId="";S.confirm=null;render();break;
+    case"closeDay":S.reg.day="";S.reg.editingId="";S.confirm=null;render();break;
     case"backup":backup();break;
     case"restore":$("#fileInput").click();break;
   }
