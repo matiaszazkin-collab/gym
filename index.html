@@ -132,6 +132,8 @@ svg.chart{width:100%;height:auto;display:block}
 .pickbtn:hover{border-color:var(--borderStrong)}
 .pickbtn .pname{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:15px}
 .pickbtn .chev{color:var(--dim);display:flex;flex-shrink:0}
+.excomment{display:flex;gap:6px;align-items:flex-start;font-size:12px;color:var(--dim);line-height:1.4;padding:2px 2px 0}
+.excomment svg{flex-shrink:0;margin-top:2px;color:var(--faint)}
 .acc{display:flex;flex-direction:column;gap:7px}
 .accgroup{border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--surface2)}
 .accgroup.on{border-color:var(--borderStrong)}
@@ -219,6 +221,7 @@ const ICON = {
   alert:'<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
   chevL:'<path d="m15 18-6-6 6-6"/>',
   chevD:'<path d="m6 9 6 6 6-6"/>',
+  note:'<path d="M8 2h8a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Z"/><path d="M9 7h6"/><path d="M9 11h6"/><path d="M9 15h3"/>',
   chevR:'<path d="m9 18 6-6-6-6"/>'
 };
 function ico(name, size, sw){
@@ -319,18 +322,6 @@ function flash(){
 /* ---------- fragmentos ---------- */
 function field(labelTxt,inner){return '<label class="field"><span>'+esc(labelTxt)+'</span>'+inner+'</label>';}
 function empty(icon,t,s){return '<div class="empty">'+ico(icon,28,1.5)+'<div class="t">'+esc(t)+'</div><div class="s">'+esc(s)+'</div></div>';}
-function exerciseOptions(sel,withGroups){
-  if(withGroups){
-    const g={};
-    S.exercises.forEach(e=>{(g[e.muscleGroup]=g[e.muscleGroup]||[]).push(e);});
-    return Object.keys(g).sort((a,b)=>a.localeCompare(b)).map(mg=>
-      '<optgroup label="'+esc(mg)+'">'+g[mg].sort((a,b)=>a.name.localeCompare(b.name)).map(e=>
-        '<option value="'+e.id+'"'+(e.id===sel?" selected":"")+'>'+esc(label(e))+'</option>').join("")+'</optgroup>').join("");
-  }
-  return S.exercises.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(e=>
-    '<option value="'+e.id+'"'+(e.id===sel?" selected":"")+'>'+esc(label(e))+'</option>').join("");
-}
-
 /* ---------- pestaña Carga ---------- */
 /* última vez que el peso subió respecto de todo lo anterior */
 const STALL_DAYS=14;
@@ -359,7 +350,9 @@ function viewCarga(){
     +   '<button class="pickbtn" data-act="openPick">'
     +     '<span class="pill iron">'+esc(exSel.muscleGroup)+'</span>'
     +     '<span class="pname">'+esc(label(exSel))+'</span>'
-    +     '<span class="chev">'+ico("chevD",16)+'</span></button></div>'
+    +     '<span class="chev">'+ico("chevD",16)+'</span></button>'
+    +   (exSel.comments?'<div class="excomment">'+ico("note",13)+esc(exSel.comments)+'</div>':'')
+    +   '</div>'
     + '<div class="row"><div class="col">'
     + field("Peso promedio (kg)",'<input type="number" inputmode="decimal" step="0.5" min="0" placeholder="0" value="'+esc(S.form.avg)+'" data-bind="form.avg" data-enter="add">')
     + '</div><div class="col">'
@@ -386,19 +379,25 @@ function viewCarga(){
       + '<span class="nums">'+(r.avg!=null?"prom "+r.avg:"—")+' · '+(r.max!=null?"máx "+r.max:"—")+'</span></div>').join("")
       + '</div></div>';
   }
-  if(S.pick.open)h+=pickerModal();
   return h;
 }
 
-/* selector: grupos musculares plegables */
+/* selector: grupos musculares plegables (modo "form" en Carga, "filter" en Registro) */
 function pickerModal(){
-  const P=S.pick;
+  const P=S.pick, filter=P.mode==="filter";
+  const cur=filter?S.reg.filterId:S.form.exerciseId;
+  const pool=filter?S.exercises.filter(ex=>S.entries.some(e=>e.exerciseId===ex.id)):S.exercises;
   const byGroup={};
-  S.exercises.forEach(e=>{(byGroup[e.muscleGroup]=byGroup[e.muscleGroup]||[]).push(e);});
+  pool.forEach(e=>{(byGroup[e.muscleGroup]=byGroup[e.muscleGroup]||[]).push(e);});
   const groups=MUSCLE_GROUPS.filter(g=>byGroup[g]&&byGroup[g].length)
     .concat(Object.keys(byGroup).filter(g=>MUSCLE_GROUPS.indexOf(g)<0).sort());
 
-  const body=groups.map(g=>{
+  let body=filter
+    ? '<div class="accgroup"><button class="accitem'+(cur?"":" sel")+'" data-act="pickEx" data-id="__all">'
+      +'<span class="t">Todos los ejercicios</span>'+(cur?'':ico("check",14))+'</button></div>'
+    : '';
+
+  body+=groups.map(g=>{
     const on=P.group===g, items=byGroup[g].slice().sort((a,b)=>a.name.localeCompare(b.name));
     let s='<div class="accgroup'+(on?" on":"")+'">'
       +'<button class="acchead" data-act="accGroup" data-id="'+esc(g)+'">'
@@ -407,13 +406,18 @@ function pickerModal(){
       +'<span class="c">'+items.length+'</span></button>';
     if(on){
       s+='<div class="accbody">'+items.map(ex=>{
-        const vals=S.entries.filter(e=>e.exerciseId===ex.id).map(peak).filter(v=>v!=null);
-        const best=vals.length?Math.max.apply(null,vals):null;
-        return '<button class="accitem'+(ex.id===S.form.exerciseId?" sel":"")+'" data-act="pickEx" data-id="'+ex.id+'">'
+        let right="";
+        if(filter){
+          const n=S.entries.filter(e=>e.exerciseId===ex.id).length;
+          right='<span class="w">'+n+'</span>';
+        }else{
+          const vals=S.entries.filter(e=>e.exerciseId===ex.id).map(peak).filter(v=>v!=null);
+          if(vals.length)right='<span class="w">'+Math.max.apply(null,vals)+' kg</span>';
+        }
+        return '<button class="accitem'+(ex.id===cur?" sel":"")+'" data-act="pickEx" data-id="'+ex.id+'">'
           +'<span class="t">'+esc(ex.name)+'</span>'
-          +'<span class="ty">'+esc(ex.type)+'</span>'
-          +(best!=null?'<span class="w">'+best+' kg</span>':'')
-          +(ex.id===S.form.exerciseId?ico("check",14):'')+'</button>';
+          +'<span class="ty">'+esc(ex.type)+'</span>'+right
+          +(ex.id===cur?ico("check",14):'')+'</button>';
       }).join("")+'</div>';
     }
     return s+'</div>';
@@ -421,7 +425,7 @@ function pickerModal(){
 
   return '<div class="overlay" data-act="closePick"><div class="modal" data-stop="1">'
     +'<div class="modalhead"><div style="min-width:0">'
-    +'<div class="modaltitle">Elegí el ejercicio</div>'
+    +'<div class="modaltitle">'+(filter?"Filtrar por ejercicio":"Elegí el ejercicio")+'</div>'
     +'<div class="hint">Tocá un grupo muscular para desplegarlo.</div></div>'
     +'<button class="icobtn" data-act="closePick">'+ico("x",15)+'</button></div>'
     +'<div class="modalbody"><div class="acc">'+body+'</div></div></div></div>';
@@ -526,12 +530,16 @@ function viewRegistro(){
   const list=S.entries.filter(e=>!R.filterId||e.exerciseId===R.filterId)
     .slice().sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));
 
+  const fex=byId(R.filterId);
   let h='<div class="segbar">'
     + '<button data-act="regView" data-id="lista"'+(R.view==="lista"?' class="on"':'')+'>'+ico("list",15)+'Lista</button>'
     + '<button data-act="regView" data-id="calendario"'+(R.view==="calendario"?' class="on"':'')+'>'+ico("calendar",15)+'Calendario</button>'
     + '</div>'
-    + '<div class="card tight">'+field("Filtrar por ejercicio",
-      '<select data-bind="reg.filterId" data-render="1"><option value="">Todos los ejercicios</option>'+exerciseOptions(R.filterId,false)+'</select>')+'</div>';
+    + '<div class="card tight"><div class="field"><span>Filtrar por ejercicio</span>'
+    +   '<button class="pickbtn" data-act="openPick" data-id="filter">'
+    +   (fex?'<span class="pill iron">'+esc(fex.muscleGroup)+'</span><span class="pname">'+esc(label(fex))+'</span>'
+          :'<span class="pname">Todos los ejercicios</span>')
+    +   '<span class="chev">'+ico("chevD",16)+'</span></button></div></div>';
 
   h += (R.view==="calendario") ? calendarBody(list) : listBody(list);
 
@@ -717,13 +725,14 @@ function dashboard(exId,compact){
 const TABS=[["carga","Carga","dumbbell"],["biblioteca","Biblioteca","library"],["registro","Registro","clipboard"],["progreso","Progreso","chart"]];
 function render(){
   $("#logo").innerHTML=ico("dumbbell",18,2.2);
-  $("#main").innerHTML =
+  $("#main").innerHTML = (
     S.tab==="carga"?viewCarga():
     S.tab==="biblioteca"?viewBiblioteca():
-    S.tab==="registro"?viewRegistro():viewProgreso();
+    S.tab==="registro"?viewRegistro():viewProgreso()
+  ) + (S.pick.open?pickerModal():"");
   $("#nav").innerHTML=TABS.map(t=>'<button data-tab="'+t[0]+'"'+(S.tab===t[0]?' class="active"':'')+'>'
     +ico(t[2],19,S.tab===t[0]?2.4:2)+'<span>'+t[1]+'</span></button>').join("");
-  const open=(S.tab==="registro"&&S.reg.view==="calendario"&&!!S.reg.day)||(S.tab==="carga"&&S.pick.open);
+  const open=S.pick.open||(S.tab==="registro"&&S.reg.view==="calendario"&&!!S.reg.day);
   document.body.style.overflow=open?"hidden":"";
 }
 
@@ -753,7 +762,7 @@ document.addEventListener("keydown",e=>{
 });
 document.addEventListener("click",e=>{
   const nav=e.target.closest("nav button");
-  if(nav){S.tab=nav.getAttribute("data-tab");S.confirm=null;render();return;}
+  if(nav){S.tab=nav.getAttribute("data-tab");S.confirm=null;S.pick.open=false;render();return;}
   const btn=e.target.closest("[data-act]");
   if(!btn)return;
   /* click adentro del popup: no lo cierro */
@@ -785,10 +794,18 @@ document.addEventListener("click",e=>{
     case"nextMonth":S.reg.month=shiftMonth(S.reg.month,1);S.reg.day="";S.confirm=null;render();break;
     case"pickDay":S.reg.day=(S.reg.day===id?"":id);S.reg.editingId="";S.confirm=null;render();break;
     case"closeDay":S.reg.day="";S.reg.editingId="";S.confirm=null;render();break;
-    case"openPick":{const ex=byId(S.form.exerciseId);S.pick.open=true;S.pick.group=ex?ex.muscleGroup:MUSCLE_GROUPS[0];S.confirm=null;render();break;}
+    case"openPick":{
+      const mode=id||"form";
+      const ex=byId(mode==="filter"?S.reg.filterId:S.form.exerciseId);
+      S.pick={open:true,mode:mode,group:ex?ex.muscleGroup:(mode==="filter"?"":MUSCLE_GROUPS[0])};
+      S.confirm=null;render();break;}
     case"closePick":S.pick.open=false;render();break;
     case"accGroup":S.pick.group=(S.pick.group===id?"":id);render();break;
-    case"pickEx":S.form.exerciseId=id;S.pick.open=false;S.error="";render();break;
+    case"pickEx":{
+      const v=(id==="__all")?"":id;
+      if(S.pick.mode==="filter"){S.reg.filterId=v;S.reg.editingId="";}
+      else{S.form.exerciseId=v;S.error="";}
+      S.pick.open=false;S.confirm=null;render();break;}
     case"backup":backup();break;
     case"restore":$("#fileInput").click();break;
   }
