@@ -16,7 +16,7 @@
 :root{
   --bg:#15171A; --surface:#1C1F24; --surface2:#242830; --border:#31363E;
   --borderStrong:#3D434C; --text:#F1EEE7; --dim:#9AA1AB; --faint:#6B7280;
-  --iron:#E8543A; --steel:#5B8CA8; --ok:#7FA66B;
+  --iron:#E8543A; --steel:#5B8CA8; --ok:#7FA66B; --warn:#D9A441;
   --display:"Oswald","Arial Narrow",Impact,sans-serif;
   --body:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   --mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
@@ -85,8 +85,8 @@ label.field>span{font-size:12px;letter-spacing:.4px;text-transform:uppercase;col
 .kv{font-size:11px;color:var(--faint);margin-top:6px;font-family:var(--mono)}
 .when{font-size:11px;color:var(--faint);margin-top:2px}
 
-.delta{display:flex;align-items:center;gap:10px}
-.rings{position:relative;width:34px;height:34px;flex-shrink:0}
+.delta{display:flex;align-items:center;gap:8px}
+.rings{position:relative;width:28px;height:28px;flex-shrink:0}
 .rings i{position:absolute;border-radius:50%;border:2px solid currentColor;top:50%;left:50%;transform:translate(-50%,-50%)}
 .delta .val{display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:14px;font-weight:600}
 
@@ -99,10 +99,26 @@ nav button.active{background:rgba(232,84,58,.12);color:var(--iron)}
 nav button span{font-family:var(--display);font-size:11px;letter-spacing:.4px;text-transform:uppercase}
 
 .toast{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--ok);flex-shrink:0}
-.legend{display:flex;gap:14px;font-size:12px;color:var(--dim);padding:0 8px 8px}
-.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
-.chartwrap{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 8px 8px}
+.legend{display:flex;gap:14px;font-size:11px;color:var(--faint);padding:2px 0 0 4px}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.chartbox{margin-top:6px}
 svg.chart{width:100%;height:auto;display:block}
+
+/* aviso de estancamiento */
+.warn{display:flex;gap:9px;align-items:flex-start;background:rgba(217,164,65,.10);border:1px solid rgba(217,164,65,.34);border-radius:10px;padding:11px 13px;color:var(--warn);font-size:13px;line-height:1.45}
+.warn svg{flex-shrink:0;margin-top:1px}
+.warn b{font-family:var(--mono);font-weight:400}
+
+/* progreso: bandas por ejercicio */
+.exlist{display:flex;flex-direction:column;gap:0;margin:0 -16px}
+.exblock{padding:14px 16px 16px}
+.exblock:nth-child(odd){background:rgba(255,255,255,.018)}
+.exblock:nth-child(even){background:rgba(255,255,255,.055)}
+.statline{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px}
+.metaline{font-size:11px;color:var(--faint);font-family:var(--mono);margin-top:6px;line-height:1.6}
+.metaline svg{vertical-align:-2px;margin-right:2px}
+.stickyfilters{position:sticky;top:0;z-index:9;background:var(--bg);margin:-16px -16px 0;padding:10px 16px;border-bottom:1px solid var(--border)}
+.stickyfilters select{padding-top:8px;padding-bottom:8px;font-size:14px}
 .filebar{display:flex;gap:10px}
 .filebar .btn{flex:1;font-size:13px;padding:10px 12px}
 
@@ -131,9 +147,7 @@ svg.chart{width:100%;height:auto;display:block}
 .modalbody{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 16px calc(18px + env(safe-area-inset-bottom))}
 @media(min-width:560px){.overlay{align-items:center;padding:20px}.modal{border-radius:16px}}
 
-.group{margin-top:20px;padding-top:16px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:16px}
-.group:first-of-type{border-top:none;padding-top:0}
-.grouphead{font-family:var(--display);font-size:16px;letter-spacing:.4px;text-transform:uppercase;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.grouphead{font-family:var(--display);font-size:15px;letter-spacing:.4px;text-transform:uppercase;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 </style>
 </head>
 <body>
@@ -174,6 +188,7 @@ const ICON = {
   chart:'<path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="m19 9-5 5-4-4-3 3"/>',
   calendar:'<rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="M8 2v4"/><path d="M16 2v4"/>',
   list:'<path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/>',
+  alert:'<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
   chevL:'<path d="m15 18-6-6 6-6"/>',
   chevR:'<path d="m9 18 6-6-6-6"/>'
 };
@@ -287,6 +302,18 @@ function exerciseOptions(sel,withGroups){
 }
 
 /* ---------- pestaña Carga ---------- */
+/* última vez que el peso subió respecto de todo lo anterior */
+const STALL_DAYS=14;
+function stall(exId){
+  const list=S.entries.filter(e=>e.exerciseId===exId&&peak(e)!=null)
+    .sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));
+  if(!list.length)return null;
+  let best=-Infinity,bestTs=null;
+  list.forEach(e=>{const v=peak(e);if(v>best){best=v;bestTs=e.timestamp;}});
+  const days=Math.floor((Date.now()-new Date(bestTs).getTime())/86400000);
+  return {days:days,weight:best,ts:bestTs,stalled:days>STALL_DAYS,n:list.length};
+}
+
 function viewCarga(){
   if(!S.exercises.length)return empty("library","No hay ejercicios","Agregá ejercicios en la pestaña Biblioteca para poder cargar pesos.");
   if(!S.form.exerciseId||!byId(S.form.exerciseId))S.form.exerciseId=S.exercises[0].id;
@@ -309,7 +336,14 @@ function viewCarga(){
     + '<button class="btn full" data-act="add">'+ico("plus",16)+'Cargar</button>'
     + '</div>';
 
-  if(record!=null)h+='<div class="record">'+ico("trophy",15)+'Récord en este ejercicio: <b>'+record+' kg</b></div>';
+  const st=stall(S.form.exerciseId);
+  if(st&&st.stalled){
+    const q=since(st.ts), qc=q.charAt(0).toUpperCase()+q.slice(1);
+    h+='<div class="warn">'+ico("alert",16)
+      +'<div>'+qc+' que no subís el peso en este ejercicio. Tu mejor marca sigue siendo <b>'+st.weight+' kg</b> ('+fmtShort(st.ts)+').</div></div>';
+  }else if(record!=null){
+    h+='<div class="record">'+ico("trophy",15)+'Récord en este ejercicio: <b>'+record+' kg</b></div>';
+  }
 
   if(hist.length){
     h+='<div><div class="eyebrow" style="margin-bottom:8px">Últimas cargas</div><div class="stack sm">'
@@ -504,7 +538,7 @@ function calendarBody(list){
 
 /* ---------- pestaña Progreso ---------- */
 function chart(entries){
-  const W=640,H=250,pl=42,pr=14,pt=14,pb=32;
+  const W=640,H=185,pl=38,pr=12,pt=10,pb=26;
   const n=entries.length;
   const all=[];entries.forEach(e=>{if(e.avg!=null)all.push(e.avg);if(e.max!=null)all.push(e.max);});
   let lo=Math.min.apply(null,all),hi=Math.max.apply(null,all);
@@ -541,28 +575,30 @@ function viewProgreso(){
   const V=S.vis;
   const avail=S.exercises.filter(e=>V.group==="Todos"||e.muscleGroup===V.group).sort((a,b)=>a.name.localeCompare(b.name));
   if(V.exerciseId&&!avail.some(e=>e.id===V.exerciseId))V.exerciseId="";
-  const allLabel=V.group==="Todos"?"Elegir":"Todos los de "+V.group;
+  const allLabel=V.group==="Todos"?"Elegir ejercicio":"Todos los de "+V.group;
 
-  let h='<div class="card row"><div class="col">'
-    + field("Grupo muscular",'<select data-bind="vis.group" data-render="1"><option'+(V.group==="Todos"?" selected":"")+'>Todos</option>'
-      + MUSCLE_GROUPS.map(m=>'<option'+(m===V.group?" selected":"")+'>'+m+'</option>').join("")+'</select>')
-    + '</div><div class="col">'
-    + field("Ejercicio",'<select data-bind="vis.exerciseId" data-render="1"><option value="">'+esc(allLabel)+'</option>'
-      + avail.map(e=>'<option value="'+e.id+'"'+(e.id===V.exerciseId?" selected":"")+'>'+esc(label(e))+'</option>').join("")+'</select>')
+  let h='<div class="stickyfilters"><div class="row">'
+    + '<div class="col"><select data-bind="vis.group" data-render="1"><option value="Todos"'+(V.group==="Todos"?" selected":"")+'>Todos los grupos</option>'
+      + MUSCLE_GROUPS.map(m=>'<option'+(m===V.group?" selected":"")+'>'+m+'</option>').join("")+'</select></div>'
+    + '<div class="col"><select data-bind="vis.exerciseId" data-render="1"><option value="">'+esc(allLabel)+'</option>'
+      + avail.map(e=>'<option value="'+e.id+'"'+(e.id===V.exerciseId?" selected":"")+'>'+esc(label(e))+'</option>').join("")+'</select></div>'
     + '</div></div>';
 
   /* un ejercicio puntual */
-  if(V.exerciseId)return h+dashboard(V.exerciseId,false);
+  if(V.exerciseId){
+    const ex=byId(V.exerciseId);
+    return h+'<div class="exlist"><div class="exblock">'
+      +'<div class="grouphead">'+esc(label(ex))+'<span class="pill">'+esc(ex.type)+'</span></div>'
+      +dashboard(V.exerciseId,false)+'</div></div>';
+  }
 
-  /* grupo entero: un dashboard por ejercicio con cargas */
+  /* grupo entero: un bloque por ejercicio con cargas */
   if(V.group!=="Todos"){
     const withData=avail.filter(ex=>S.entries.some(e=>e.exerciseId===ex.id));
     if(!withData.length)return h+empty("dumbbell","Sin cargas en "+V.group,"Todavía no cargaste pesos en ningún ejercicio de este grupo.");
-    h+='<div class="hint" style="padding-left:2px">'+withData.length+' '
-      +(withData.length===1?"ejercicio con cargas":"ejercicios con cargas")+' en '+esc(V.group)+'</div>';
-    return h+withData.map(ex=>'<div class="group">'
+    return h+'<div class="exlist">'+withData.map(ex=>'<div class="exblock">'
       +'<div class="grouphead">'+esc(label(ex))+'<span class="pill">'+esc(ex.type)+'</span></div>'
-      +dashboard(ex.id,true)+'</div>').join("");
+      +dashboard(ex.id,true)+'</div>').join("")+'</div>';
   }
 
   return h+empty("chart","Elegí qué ver","Elegí un grupo muscular para ver todos sus ejercicios, o un ejercicio puntual para su evolución.");
@@ -579,36 +615,27 @@ function dashboard(exId,compact){
   const vals=list.map(peak).filter(v=>v!=null);
   const record=vals.length?Math.max.apply(null,vals):null;
 
-  h+='<div class="row"><div class="card col" style="padding:14px">'
-    +'<div class="eyebrow" style="font-size:11px;margin-bottom:6px">Peso actual</div>'
-    +'<div class="big">'+(cp!=null?cp:"—")+'<span>kg</span></div>'
-    +'<div class="kv">prom '+(cur.avg!=null?cur.avg:"—")+' · máx '+(cur.max!=null?cur.max:"—")+'</div>'
-    +'<div class="when">'+fmtDate(cur.timestamp)+'</div></div>'
-    +'<div class="card col" style="padding:14px">'
-    +'<div class="eyebrow" style="font-size:11px;margin-bottom:6px">Peso anterior</div>'
-    +(prev?'<div class="big">'+(pp!=null?pp:"—")+'<span>kg</span></div>'
-        +'<div class="kv">prom '+(prev.avg!=null?prev.avg:"—")+' · máx '+(prev.max!=null?prev.max:"—")+'</div>'
-        +'<div class="when" style="color:var(--iron)">'+since(prev.timestamp)+'</div>'
-      :'<div class="hint">Todavía no hay un registro anterior.</div>')
-    +'</div></div>';
+  h+='<div class="statline"><div class="big">'+(cp!=null?cp:"—")+'<span>kg</span></div>';
 
   if(delta!=null){
     const up=delta>0,flat=delta===0;
     const color=flat?"var(--faint)":up?"var(--ok)":"var(--steel)";
     const rings=flat?1:Math.min(3,Math.max(1,Math.ceil(Math.abs(delta)/2.5)));
-    let r="";for(let i=0;i<rings;i++){const s=34-i*8;r+='<i style="width:'+s+'px;height:'+s+'px;opacity:'+(0.9-i*0.25)+'"></i>';}
-    h+='<div class="card" style="padding:12px 16px"><div class="delta" style="color:'+color+'">'
+    let r="";for(let i=0;i<rings;i++){const s=28-i*7;r+='<i style="width:'+s+'px;height:'+s+'px;opacity:'+(0.9-i*0.25)+'"></i>';}
+    h+='<div class="delta" style="color:'+color+'">'
       +'<div class="rings">'+r+'</div>'
-      +'<div class="val">'+ico(flat?"minus":up?"up":"down",15)+(flat?"sin cambios":(up?"+":"")+delta+" kg")+'</div>'
-      +'<span class="hint">vs. registro anterior</span></div></div>';
+      +'<div class="val">'+ico(flat?"minus":up?"up":"down",14)+(flat?"sin cambios":(up?"+":"")+delta+" kg")+'</div></div>'
+      +'<span class="hint">vs. anterior</span>';
   }
+  h+='</div>';
 
-  if(record!=null)h+='<div class="record">'+ico("trophy",15)+'Récord: <b>'+record+' kg</b> <span class="hint">· '+list.length+' '+(list.length===1?"registro":"registros")+'</span></div>';
+  h+='<div class="metaline">prom '+(cur.avg!=null?cur.avg:"—")+' · máx '+(cur.max!=null?cur.max:"—")+' · '+fmtShort(cur.timestamp)
+    +(record!=null?' · '+ico("trophy",12)+'récord '+record+' kg':'')
+    +' · '+list.length+' '+(list.length===1?"reg.":"regs.")+'</div>';
 
   if(list.length>1||!compact){
-    h+='<div class="chartwrap"><div class="eyebrow" style="margin:0 0 10px 8px">Evolución</div>'
-      +'<div class="legend"><span><i style="background:#5B8CA8"></i>Promedio</span><span><i style="background:#E8543A"></i>Máximo</span></div>'
-      +chart(list)+'</div>';
+    h+='<div class="chartbox">'+chart(list)
+      +'<div class="legend"><span><i style="background:#5B8CA8"></i>Promedio</span><span><i style="background:#E8543A"></i>Máximo</span></div></div>';
   }
   return h;
 }
