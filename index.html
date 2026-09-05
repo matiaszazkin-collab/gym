@@ -160,11 +160,10 @@ svg.chart{width:100%;height:auto;display:block}
 .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
 .cal .dow{text-align:center;font-size:11px;letter-spacing:.4px;text-transform:uppercase;color:var(--faint);padding-bottom:2px}
 .cal .pad{aspect-ratio:1}
-.cal .day{aspect-ratio:1;background:transparent;border:1px solid transparent;border-radius:8px;color:var(--faint);font-family:var(--mono);font-size:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:0}
-.cal .day.has{background:var(--surface2);border-color:var(--border);color:var(--text)}
+.cal .day{aspect-ratio:1;background:transparent;border:1px solid transparent;border-radius:8px;color:var(--faint);font-family:var(--mono);font-size:14px;display:flex;align-items:center;justify-content:center;padding:0}
+.cal .day.has{background:var(--iron);border-color:var(--iron);color:#fff;font-weight:700}
 .cal .day.today{border-color:var(--steel)}
-.cal .day.sel{background:rgba(232,84,58,.16);border-color:var(--iron);color:var(--iron)}
-.cal .day .dot{width:5px;height:5px;border-radius:50%;background:var(--iron)}
+.cal .day.sel{background:var(--iron);color:#fff;border-color:var(--text)}
 .daygroup{font-family:var(--display);font-size:13px;letter-spacing:.4px;text-transform:uppercase;color:var(--dim);margin:14px 0 8px;display:flex;align-items:center;gap:8px}
 .daygroup:before{content:"";height:1px;flex:0 0 14px;background:var(--borderStrong)}
 
@@ -573,7 +572,7 @@ function calendarBody(list){
     const has=!!byDay[k]; if(has)inMonth+=byDay[k].length;
     const cls="day"+(has?" has":"")+(k===todayKey?" today":"")+(k===R.day?" sel":"");
     cells+='<button class="'+cls+'"'+(has?' data-act="pickDay" data-id="'+k+'"':' disabled')+'>'
-      +'<span>'+d+'</span>'+(has?'<i class="dot"></i>':'')+'</button>';
+      +'<span>'+d+'</span></button>';
   }
 
   let h='<div class="card">'
