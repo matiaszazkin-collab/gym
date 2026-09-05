@@ -50,8 +50,8 @@ main{max-width:640px;width:100%;margin:0 auto;padding:16px 16px 104px;display:fl
 .stack{display:flex;flex-direction:column;gap:12px}
 .stack.lg{gap:16px}
 .stack.sm{gap:8px}
-label.field{display:flex;flex-direction:column;gap:6px}
-label.field>span{font-size:12px;letter-spacing:.4px;text-transform:uppercase;color:var(--dim)}
+.field{display:flex;flex-direction:column;gap:6px}
+.field>span{font-size:12px;letter-spacing:.4px;text-transform:uppercase;color:var(--dim)}
 .hint{font-size:12px;color:var(--faint)}
 .err{font-size:13px;color:var(--iron)}
 .eyebrow{font-family:var(--display);font-size:13px;letter-spacing:.5px;text-transform:uppercase;color:var(--dim)}
@@ -70,6 +70,13 @@ label.field>span{font-size:12px;letter-spacing:.4px;text-transform:uppercase;col
 
 .item{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px}
 .item.editing{border-color:var(--iron)}
+
+/* listas sin cajitas: bandas de tono alternado */
+.rowlist{display:flex;flex-direction:column;gap:0;margin:0 -16px}
+.rowlist>.item{background:transparent;border:none;border-radius:0;padding:12px 16px}
+.rowlist>.item:nth-child(odd){background:rgba(255,255,255,.018)}
+.rowlist>.item:nth-child(even){background:rgba(255,255,255,.055)}
+.rowlist>.item.editing{box-shadow:inset 3px 0 0 var(--iron)}
 .item .name{font-family:var(--display);font-size:14px;text-transform:uppercase;letter-spacing:.3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .item .meta{font-size:12px;color:var(--dim)}
 .nums{font-family:var(--mono);font-size:13px;color:var(--dim);white-space:nowrap}
@@ -119,6 +126,28 @@ svg.chart{width:100%;height:auto;display:block}
 .metaline svg{vertical-align:-2px;margin-right:2px}
 .stickyfilters{position:sticky;top:0;z-index:9;background:var(--bg);margin:-16px -16px 0;padding:10px 16px;border-bottom:1px solid var(--border)}
 .stickyfilters select{padding-top:8px;padding-bottom:8px;font-size:14px}
+
+/* selector de ejercicio con grupos plegables */
+.pickbtn{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px 12px;display:flex;align-items:center;gap:9px;text-align:left}
+.pickbtn:hover{border-color:var(--borderStrong)}
+.pickbtn .pname{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:15px}
+.pickbtn .chev{color:var(--dim);display:flex;flex-shrink:0}
+.acc{display:flex;flex-direction:column;gap:7px}
+.accgroup{border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--surface2)}
+.accgroup.on{border-color:var(--borderStrong)}
+.acchead{width:100%;background:transparent;border:none;padding:11px 12px;display:flex;align-items:center;gap:9px;color:var(--text);font-family:var(--display);font-size:14px;text-transform:uppercase;letter-spacing:.3px}
+.acchead .n{flex:1;text-align:left;min-width:0}
+.acchead .c{font-family:var(--mono);font-size:12px;color:var(--faint);letter-spacing:0}
+.acchead .chev{display:flex;color:var(--dim);transition:transform .15s}
+.accgroup.on .acchead{color:var(--iron)}
+.accgroup.on .acchead .chev{transform:rotate(90deg);color:var(--iron)}
+.accbody{display:flex;flex-direction:column;border-top:1px solid var(--border)}
+.accitem{background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,.05);padding:10px 12px;display:flex;align-items:center;gap:9px;color:var(--text);text-align:left;font-size:14px}
+.accitem:last-child{border-bottom:none}
+.accitem.sel{background:rgba(232,84,58,.13);color:var(--iron)}
+.accitem .t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.accitem .ty{font-size:11px;color:var(--faint);flex-shrink:0}
+.accitem .w{font-family:var(--mono);font-size:12px;color:var(--dim);flex-shrink:0}
 .filebar{display:flex;gap:10px}
 .filebar .btn{flex:1;font-size:13px;padding:10px 12px}
 
@@ -190,6 +219,7 @@ const ICON = {
   list:'<path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/>',
   alert:'<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
   chevL:'<path d="m15 18-6-6 6-6"/>',
+  chevD:'<path d="m6 9 6 6 6-6"/>',
   chevR:'<path d="m9 18 6-6-6-6"/>'
 };
 function ico(name, size, sw){
@@ -262,6 +292,7 @@ const S={
   lib:{editingId:null,name:"",muscleGroup:MUSCLE_GROUPS[0],type:TYPES[0],comments:""},
   reg:{filterId:"",editingId:"",eAvg:"",eMax:"",view:"lista",month:monthKey(new Date()),day:""},
   vis:{group:"Todos",exerciseId:""},
+  pick:{open:false,group:""},
   confirm:null, error:"", libError:"", saved:false
 };
 
@@ -323,8 +354,13 @@ function viewCarga(){
   const vals=hist.map(peak).filter(v=>v!=null);
   const record=vals.length?Math.max.apply(null,vals):null;
 
+  const exSel=byId(S.form.exerciseId);
   let h='<div class="card stack lg">'
-    + field("Ejercicio",'<select data-bind="form.exerciseId" data-render="1">'+exerciseOptions(S.form.exerciseId,true)+'</select>')
+    + '<div class="field"><span>Ejercicio</span>'
+    +   '<button class="pickbtn" data-act="openPick">'
+    +     '<span class="pill iron">'+esc(exSel.muscleGroup)+'</span>'
+    +     '<span class="pname">'+esc(label(exSel))+'</span>'
+    +     '<span class="chev">'+ico("chevD",16)+'</span></button></div>'
     + '<div class="row"><div class="col">'
     + field("Peso promedio (kg)",'<input type="number" inputmode="decimal" step="0.5" min="0" placeholder="0" value="'+esc(S.form.avg)+'" data-bind="form.avg" data-enter="add">')
     + '</div><div class="col">'
@@ -351,7 +387,45 @@ function viewCarga(){
       + '<span class="nums">'+(r.avg!=null?"prom "+r.avg:"—")+' · '+(r.max!=null?"máx "+r.max:"—")+'</span></div>').join("")
       + '</div></div>';
   }
+  if(S.pick.open)h+=pickerModal();
   return h;
+}
+
+/* selector: grupos musculares plegables */
+function pickerModal(){
+  const P=S.pick;
+  const byGroup={};
+  S.exercises.forEach(e=>{(byGroup[e.muscleGroup]=byGroup[e.muscleGroup]||[]).push(e);});
+  const groups=MUSCLE_GROUPS.filter(g=>byGroup[g]&&byGroup[g].length)
+    .concat(Object.keys(byGroup).filter(g=>MUSCLE_GROUPS.indexOf(g)<0).sort());
+
+  const body=groups.map(g=>{
+    const on=P.group===g, items=byGroup[g].slice().sort((a,b)=>a.name.localeCompare(b.name));
+    let s='<div class="accgroup'+(on?" on":"")+'">'
+      +'<button class="acchead" data-act="accGroup" data-id="'+esc(g)+'">'
+      +'<span class="chev">'+ico("chevR",15)+'</span>'
+      +'<span class="n">'+esc(g)+'</span>'
+      +'<span class="c">'+items.length+'</span></button>';
+    if(on){
+      s+='<div class="accbody">'+items.map(ex=>{
+        const vals=S.entries.filter(e=>e.exerciseId===ex.id).map(peak).filter(v=>v!=null);
+        const best=vals.length?Math.max.apply(null,vals):null;
+        return '<button class="accitem'+(ex.id===S.form.exerciseId?" sel":"")+'" data-act="pickEx" data-id="'+ex.id+'">'
+          +'<span class="t">'+esc(ex.name)+'</span>'
+          +'<span class="ty">'+esc(ex.type)+'</span>'
+          +(best!=null?'<span class="w">'+best+' kg</span>':'')
+          +(ex.id===S.form.exerciseId?ico("check",14):'')+'</button>';
+      }).join("")+'</div>';
+    }
+    return s+'</div>';
+  }).join("");
+
+  return '<div class="overlay" data-act="closePick"><div class="modal" data-stop="1">'
+    +'<div class="modalhead"><div style="min-width:0">'
+    +'<div class="modaltitle">Elegí el ejercicio</div>'
+    +'<div class="hint">Tocá un grupo muscular para desplegarlo.</div></div>'
+    +'<button class="icobtn" data-act="closePick">'+ico("x",15)+'</button></div>'
+    +'<div class="modalbody"><div class="acc">'+body+'</div></div></div></div>';
 }
 
 function addEntry(){
@@ -385,7 +459,7 @@ function viewBiblioteca(){
 
   if(!S.exercises.length)return h+empty("library","Sin ejercicios","Agregá el primero con el formulario de arriba.");
 
-  h+='<div class="stack sm">'+S.exercises.slice()
+  h+='<div class="rowlist">'+S.exercises.slice()
     .sort((a,b)=>a.muscleGroup.localeCompare(b.muscleGroup)||a.name.localeCompare(b.name))
     .map(ex=>{
       const cnt=S.entries.filter(e=>e.exerciseId===ex.id).length;
@@ -471,7 +545,7 @@ function viewRegistro(){
 function listBody(list){
   let h='<div class="hint" style="padding-left:2px">'+list.length+' '+(list.length===1?"registro":"registros")+'</div>';
   if(!list.length)return h+empty("clipboard","Sin registros para este ejercicio","Probá con otro filtro o cargá un peso nuevo.");
-  return h+'<div class="stack sm">'+list.map(e=>entryRow(e,true)).join("")+'</div>';
+  return h+'<div class="rowlist">'+list.map(e=>entryRow(e,true)).join("")+'</div>';
 }
 
 const DOW=["Lu","Ma","Mi","Ju","Vi","Sá","Do"];
@@ -517,7 +591,7 @@ function calendarBody(list){
   const keys=Object.keys(byDay).filter(k=>k.slice(0,7)===R.month).sort().reverse();
   h+=keys.map(k=>'<div class="daygroup">'+esc(dayLabel(k))
       +'<span class="hint" style="text-transform:none;letter-spacing:0">'+byDay[k].length+'</span></div>'
-      +'<div class="stack sm">'+byDay[k].map(e=>entryRow(e,false)).join("")+'</div>').join("");
+      +'<div class="rowlist">'+byDay[k].map(e=>entryRow(e,false)).join("")+'</div>').join("");
 
   /* popup del día elegido */
   if(R.day&&byDay[R.day]){
@@ -530,7 +604,7 @@ function calendarBody(list){
       +'<div class="hint">'+rows.length+' '+(rows.length===1?"ejercicio":"ejercicios")
       +(tope!=null?' · tope '+tope+' kg':'')+'</div></div>'
       +'<button class="icobtn" data-act="closeDay">'+ico("x",15)+'</button></div>'
-      +'<div class="modalbody"><div class="stack sm">'+rows.map(e=>entryRow(e,false)).join("")+'</div></div>'
+      +'<div class="modalbody"><div class="rowlist">'+rows.map(e=>entryRow(e,false)).join("")+'</div></div>'
       +'</div></div>';
   }
   return h;
@@ -650,7 +724,7 @@ function render(){
     S.tab==="registro"?viewRegistro():viewProgreso();
   $("#nav").innerHTML=TABS.map(t=>'<button data-tab="'+t[0]+'"'+(S.tab===t[0]?' class="active"':'')+'>'
     +ico(t[2],19,S.tab===t[0]?2.4:2)+'<span>'+t[1]+'</span></button>').join("");
-  const open=S.tab==="registro"&&S.reg.view==="calendario"&&!!S.reg.day;
+  const open=(S.tab==="registro"&&S.reg.view==="calendario"&&!!S.reg.day)||(S.tab==="carga"&&S.pick.open);
   document.body.style.overflow=open?"hidden":"";
 }
 
@@ -669,6 +743,7 @@ document.addEventListener("change",e=>{
   if(e.target.id==="fileInput"&&e.target.files[0])readBackup(e.target.files[0]);
 });
 document.addEventListener("keydown",e=>{
+  if(e.key==="Escape"&&S.pick.open){S.pick.open=false;render();return;}
   if(e.key==="Escape"&&S.reg.day){S.reg.day="";S.reg.editingId="";S.confirm=null;render();return;}
   if(e.key!=="Enter")return;
   const a=e.target.getAttribute&&e.target.getAttribute("data-enter");
@@ -711,6 +786,10 @@ document.addEventListener("click",e=>{
     case"nextMonth":S.reg.month=shiftMonth(S.reg.month,1);S.reg.day="";S.confirm=null;render();break;
     case"pickDay":S.reg.day=(S.reg.day===id?"":id);S.reg.editingId="";S.confirm=null;render();break;
     case"closeDay":S.reg.day="";S.reg.editingId="";S.confirm=null;render();break;
+    case"openPick":{const ex=byId(S.form.exerciseId);S.pick.open=true;S.pick.group=ex?ex.muscleGroup:MUSCLE_GROUPS[0];S.confirm=null;render();break;}
+    case"closePick":S.pick.open=false;render();break;
+    case"accGroup":S.pick.group=(S.pick.group===id?"":id);render();break;
+    case"pickEx":S.form.exerciseId=id;S.pick.open=false;S.error="";render();break;
     case"backup":backup();break;
     case"restore":$("#fileInput").click();break;
   }
